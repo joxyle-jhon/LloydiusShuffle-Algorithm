@@ -1,17 +1,22 @@
 #include <iostream>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
+#include <algorithm>
 #include <unordered_set>
+#include <random>
+#include <chrono>
 #include <omp.h>
+#include <fstream>
 
 using namespace std;
 
 // Combined Lloydius Shuffle function
-void LloydiusShuffle(vector<int>& arr, int low, int high) {
-    if (low < high) {
+void LloydiusShuffle(vector<int> &arr, int low, int high)
+{
+    if (low < high)
+    {
         // Step 1: Apply Fisher-Yates shuffle
-        for (int i = high; i > low; --i) {
+        for (int i = high; i > low; --i)
+        {
             int j = low + rand() % (i - low + 1);
             swap(arr[i], arr[j]);
         }
@@ -29,12 +34,15 @@ void LloydiusShuffle(vector<int>& arr, int low, int high) {
         int i = low + 1; // Index to start shuffling from
 
         // Shuffle elements around the pivot (excluding the pivot itself)
-        for (int j = low + 1; j <= high; j++) {
-            if (j == pivotIndex) continue; // Skip the pivot
+        for (int j = low + 1; j <= high; j++)
+        {
+            if (j == pivotIndex)
+                continue; // Skip the pivot
             int indexToSwap = j;
 
             // Randomly choose an index to swap with, ensuring it hasn't been chosen before
-            while (shuffledIndices.find(indexToSwap) != shuffledIndices.end()) {
+            while (shuffledIndices.find(indexToSwap) != shuffledIndices.end())
+            {
                 indexToSwap = low + rand() % (high - low + 1);
             }
 
@@ -47,35 +55,65 @@ void LloydiusShuffle(vector<int>& arr, int low, int high) {
         // Place the pivot in its final position
         swap(arr[low], arr[i - 1]);
 
-        // Recursively shuffle both halves in parallel
-        #pragma omp task
+// Recursively shuffle both halves in parallel
+#pragma omp task
         LloydiusShuffle(arr, low, i - 2); // Exclude the pivot's position
-        #pragma omp task
+#pragma omp task
         LloydiusShuffle(arr, i, high);
-        #pragma omp taskwait
+#pragma omp taskwait
     }
 }
 
-int main() {
-    // Example usage
-    srand(time(NULL));
-
-    // Generate a random array
-    vector<int> arr = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-    int size = arr.size();
-
-    // Perform combined Lloydius Shuffling
-    #pragma omp parallel
+void measureShuffleTime(size_t size, bool parallel, ofstream &file)
+{
+    vector<int> data;
+    try
     {
-        #pragma omp single
-        LloydiusShuffle(arr, 0, size - 1);
+        data.resize(size);
+    }
+    catch (const std::bad_alloc &e)
+    {
+        cerr << "Memory allocation failed: " << e.what() << endl;
+        return;
     }
 
-    // Print the shuffled array
-    for (int num : arr) {
-        cout << num << " ";
-    }
-    cout << endl;
+    iota(data.begin(), data.end(), 0);
 
+    auto start = chrono::high_resolution_clock::now();
+
+    if (parallel)
+    {
+#pragma omp parallel
+        {
+#pragma omp single
+            LloydiusShuffle(data, 0, size - 1);
+        }
+    }
+    else
+    {
+        LloydiusShuffle(data, 0, size - 1);
+    }
+
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double> elapsed = end - start;
+    string type = parallel ? "Parallel" : "Sequential";
+    cout << "Size: " << size << " Time: " << elapsed.count() << " seconds" << (parallel ? " (Parallel)" : " (Sequential)") << endl;
+    file << size << "," << elapsed.count() << "," << type << "\n";
+}
+
+int main()
+{
+    // Example usage
+    ofstream file("shuffle_times.csv");
+    file << "size,time,type\n";
+
+    vector<size_t> sizes = {100, 1000, 10000};
+    for (size_t size : sizes)
+    {
+        measureShuffleTime(size, false, file); // Sequential
+        measureShuffleTime(size, true, file);  // Parallel
+    }
+
+    file.close();
     return 0;
 }
