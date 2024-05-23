@@ -1,4 +1,4 @@
-//Version 2 
+// Version 2
 
 #include <iostream>
 #include <vector>
