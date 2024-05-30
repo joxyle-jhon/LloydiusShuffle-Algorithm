@@ -1,0 +1,7 @@
+size,time,type
+100,0.001999,Sequential
+100,0.002998,Parallel
+1000,0.221931,Sequential
+1000,0.182089,Parallel
+10000,22.3605,Sequential
+10000,20.9051,Parallel
