@@ -39,62 +39,59 @@ The following C++ code demonstrates the implementation of LloydliusShuffle:
 ```cpp
 #include <iostream>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
-#include <unordered_set>
+#include <random>
 #include <omp.h>
 
-using namespace std;
+// Partition function for Quick Shuffle
+int partition(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
+    int pivotIndex = low + rng() % (high - low + 1);
+    int pivot = arr[pivotIndex];
+    std::swap(arr[pivotIndex], arr[high]); // Move pivot to end
+    int i = low - 1;
 
-void LloydliusShuffle(vector<int>& arr, int low, int high) {
-    if (low < high) {
-        unordered_set<int> shuffledIndices;
-
-        int pivotIndex = low + rand() % (high - low + 1);
-        int pivotValue = arr[pivotIndex];
-
-        swap(arr[low], arr[pivotIndex]);
-
-        int i = low + 1;
-
-        for (int j = low + 1; j <= high; j++) {
-            if (j == pivotIndex) continue;
-            int indexToSwap = j;
-
-            while (shuffledIndices.find(indexToSwap) != shuffledIndices.end()) {
-                indexToSwap = low + rand() % (high - low + 1);
-            }
-
-            swap(arr[i], arr[indexToSwap]);
-            shuffledIndices.insert(indexToSwap);
-            i++;
+    for (int j = low; j < high; ++j) {
+        if (arr[j] <= pivot) {
+            ++i;
+            std::swap(arr[i], arr[j]);
         }
+    }
+    std::swap(arr[i + 1], arr[high]); // Move pivot to its final position
+    return i + 1;
+}
 
-        swap(arr[low], arr[i - 1]);
+// Quick Shuffle function
+void quickShuffle(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
+    if (low < high) {
+        int pi = partition(arr, low, high, rng);
 
-        #pragma omp task
-        LloydliusShuffle(arr, low, i - 2);
-        #pragma omp task
-        LloydliusShuffle(arr, i, high);
-        #pragma omp taskwait
+        #pragma omp task shared(arr)
+        quickShuffle(arr, low, pi - 1, rng);
+
+        #pragma omp task shared(arr)
+        quickShuffle(arr, pi + 1, high, rng);
     }
 }
 
 int main() {
-    srand(time(NULL));
+    std::mt19937 rng(std::time(nullptr));
+    std::vector<int> arr(10000000); // Adjust size as needed
 
-    vector<int> arr = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
-    int size = arr.size();
+    // Initialize the array with some values
+    for (int i = 0; i < arr.size(); ++i) {
+        arr[i] = i;
+    }
 
     #pragma omp parallel
     {
         #pragma omp single
-        LloydliusShuffle(arr, 0, size - 1);
+        {
+            quickShuffle(arr, 0, arr.size() - 1, rng);
+        }
     }
 
-    for (int num : arr) {
-        cout << num << " ";
-    }
+    return 0;
+}
+
     cout << endl;
 
     return 0;
