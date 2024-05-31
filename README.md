@@ -32,7 +32,7 @@ LloydliusShuffle utilizes OpenMP to parallelize the recursive shuffling of sub-a
 - **Task Creation**: Recursive calls to shuffle the left and right sub-arrays are enclosed in `#pragma omp task` directives.
 - **Task Synchronization**: The `#pragma omp taskwait` directive ensures all tasks complete before proceeding.
 
-## Implementation
+## Implementation/Source Code
 
 The following C++ code demonstrates the implementation of LloydliusShuffle:
 
