@@ -24,15 +24,15 @@ int partition(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
 }
 
 // Quick Random Shuffle function
-void quickRandomShuffle(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
+void LloydiusShuffle(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
     if (low < high) {
         int pi = partition(arr, low, high, rng);
 
         #pragma omp task shared(arr)
-        quickRandomShuffle(arr, low, pi - 1, rng);
+        LloydiusShuffle(arr, low, pi - 1, rng);
 
         #pragma omp task shared(arr)
-        quickRandomShuffle(arr, pi + 1, high, rng);
+        LloydiusShuffle(arr, pi + 1, high, rng);
 
         #pragma omp taskwait
     }
@@ -53,7 +53,7 @@ int main() {
     {
         #pragma omp single
         {
-            quickRandomShuffle(arr, 0, arr.size() - 1, rng);
+            LloydiusShuffle(arr, 0, arr.size() - 1, rng);
         }
     }
 
