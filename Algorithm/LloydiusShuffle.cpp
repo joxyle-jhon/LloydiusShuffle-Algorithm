@@ -1,74 +1,71 @@
 #include <iostream>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
-#include <unordered_set>
+#include <random>
 #include <omp.h>
+#include <ctime>
+#include <chrono>
 
-using namespace std;
+// Partition function for Quick Random Shuffle
+int partition(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
+    std::uniform_int_distribution<int> dist(low, high);
+    int pivotIndex = dist(rng);
+    std::swap(arr[pivotIndex], arr[high]); // Move pivot to end
+    int pivot = arr[high];
+    int i = low - 1;
 
-void LloydliusShuffle(vector<int>& arr, int low, int high) {
-    if (low < high) {
-        unordered_set<int> shuffledIndices; // To store shuffled indices
-
-        // Choose a random pivot index
-        int pivotIndex = low + rand() % (high - low + 1);
-        int pivotValue = arr[pivotIndex]; // Store the value of the pivot
-
-        // Swap pivot with the first element
-        swap(arr[low], arr[pivotIndex]);
-
-        int i = low + 1; // Index to start shuffling from
-
-        // Shuffle elements around the pivot (excluding the pivot itself)
-        for (int j = low + 1; j <= high; j++) {
-            if (j == pivotIndex) continue; // Skip the pivot
-            int indexToSwap = j;
-
-            // Randomly choose an index to swap with, ensuring it hasn't been chosen before
-            while (shuffledIndices.find(indexToSwap) != shuffledIndices.end()) {
-                indexToSwap = low + rand() % (high - low + 1);
-            }
-
-            // Swap the element at indexToSwap with arr[i]
-            swap(arr[i], arr[indexToSwap]);
-            shuffledIndices.insert(indexToSwap);
-            i++;
+    for (int j = low; j < high; ++j) {
+        if (rng() % 2 == 0) { // Randomly swap elements for shuffling
+            ++i;
+            std::swap(arr[i], arr[j]);
         }
+    }
+    std::swap(arr[i + 1], arr[high]); // Move pivot to its final position
+    return i + 1;
+}
 
-        // Place the pivot in its final position
-        swap(arr[low], arr[i - 1]);
+// Quick Random Shuffle function
+void quickRandomShuffle(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
+    if (low < high) {
+        int pi = partition(arr, low, high, rng);
 
-        // Recursively shuffle both halves
-        #pragma omp task
-        LloydliusShuffle(arr, low, i - 2); // Exclude the pivot's position
-        #pragma omp task
-        LloydliusShuffle(arr, i, high);
+        #pragma omp task shared(arr)
+        quickRandomShuffle(arr, low, pi - 1, rng);
+
+        #pragma omp task shared(arr)
+        quickRandomShuffle(arr, pi + 1, high, rng);
+
         #pragma omp taskwait
     }
 }
 
-
 int main() {
-    // Example usage
-    srand(time(NULL));
+    std::mt19937 rng(std::time(nullptr));
+    std::vector<int> arr(1000000); // Adjust size as needed
 
-    // Generate a random array
-    vector<int> arr = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
-    int size = arr.size();
+    // Initialize the array with some values
+    for (int i = 0; i < arr.size(); ++i) {
+        arr[i] = i;
+    }
 
-    // Perform Shuffling
+    auto start = std::chrono::high_resolution_clock::now(); // Start timing
+
     #pragma omp parallel
     {
         #pragma omp single
-        LloydliusShuffle(arr, 0, size - 1);
+        {
+            quickRandomShuffle(arr, 0, arr.size() - 1, rng);
+        }
     }
 
-    // Print the shuffled array
-    for (int num : arr) {
-        cout << num << " ";
-    }
-    cout << endl;
+    auto end = std::chrono::high_resolution_clock::now(); // End timing
+    std::chrono::duration<double> duration = end - start;
+    std::cout << "Run time: " << duration.count() << " seconds" << std::endl;
+
+    // Optional: Verify if the array is shuffled
+    // for (const int& num : arr) {
+    //     std::cout << num << " ";
+    // }
+    // std::cout << std::endl;
 
     return 0;
 }
