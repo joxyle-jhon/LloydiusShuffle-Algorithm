@@ -60,15 +60,15 @@ int partition(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
 }
 
 // Quick Shuffle function
-void quickShuffle(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
+void lloydiusShuffle(std::vector<int>& arr, int low, int high, std::mt19937& rng) {
     if (low < high) {
         int pi = partition(arr, low, high, rng);
 
         #pragma omp task shared(arr)
-        quickShuffle(arr, low, pi - 1, rng);
+        lloydiusShuffle(arr, low, pi - 1, rng);
 
         #pragma omp task shared(arr)
-        quickShuffle(arr, pi + 1, high, rng);
+        lloydiusShuffle(arr, pi + 1, high, rng);
     }
 }
 
@@ -85,7 +85,7 @@ int main() {
     {
         #pragma omp single
         {
-            quickShuffle(arr, 0, arr.size() - 1, rng);
+            lloydiusShuffle(arr, 0, arr.size() - 1, rng);
         }
     }
 
