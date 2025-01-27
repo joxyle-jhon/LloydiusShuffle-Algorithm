@@ -1,6 +1,6 @@
 # LloydliusShuffle Algorithm
 
-## Algorithm Overview
+## LloydliusShuffle Algorithm Overview
 
 Welcome to the LloydliusShuffle project! This algorithm was developed by Jhon Lloyd Omblero and Julius Baliling. This repository contains the implementation of the LloydliusShuffle algorithm, designed as the final project for the Algorithm and Time Complexity 2 course. LloydliusShuffle is an innovative algorithm that combines quicksort-like partitioning with random shuffling to achieve an efficient and effective shuffling of arrays.
 
